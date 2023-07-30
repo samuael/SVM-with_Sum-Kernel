@@ -1,6 +1,8 @@
 # SVM model with Sum-Mismatch kernel
 
-## Kernel SVM with Sum-Mismatch kernal
+This implementation uses an Support Vector Machine(SVM) with Sum-Mismatch kernel to perform classification on DNA sequence data.
+
+### Kernel SVM with Sum-Mismatch kernal
 
 African Institute of Machine Intelligence(AMMI)
 Academic year: 2022/23

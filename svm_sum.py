@@ -8,17 +8,17 @@ from tqdm import tqdm
 
 from svm_utils import getNeighbours
 
-X0_train = pd.read_csv("Xtr0.csv", sep=",", index_col=0).values
-X1_train = pd.read_csv("Xtr1.csv", sep=",", index_col=0).values
-X2_train = pd.read_csv("Xtr2.csv", sep=",", index_col=0).values
+X0_train = pd.read_csv("data/Xtr0.csv", sep=",", index_col=0).values
+X1_train = pd.read_csv("data/Xtr1.csv", sep=",", index_col=0).values
+X2_train = pd.read_csv("data/Xtr2.csv", sep=",", index_col=0).values
 
-Y0_train = pd.read_csv("Ytr0.csv", sep=",", index_col=0).values
-Y1_train = pd.read_csv("Ytr1.csv", sep=",", index_col=0).values
-Y2_train = pd.read_csv("Ytr2.csv", sep=",", index_col=0).values
+Y0_train = pd.read_csv("data/Ytr0.csv", sep=",", index_col=0).values
+Y1_train = pd.read_csv("data/Ytr1.csv", sep=",", index_col=0).values
+Y2_train = pd.read_csv("data/Ytr2.csv", sep=",", index_col=0).values
 
-X0_test = pd.read_csv("Xte0.csv", sep=",", index_col=0).values[:,0]
-X1_test = pd.read_csv("Xte1.csv", sep=",", index_col=0).values[:,0]
-X2_test = pd.read_csv("Xte2.csv", sep=",", index_col=0).values[:,0]
+X0_test = pd.read_csv("data/Xte0.csv", sep=",", index_col=0).values[:,0]
+X1_test = pd.read_csv("data/Xte1.csv", sep=",", index_col=0).values[:,0]
+X2_test = pd.read_csv("data/Xte2.csv", sep=",", index_col=0).values[:,0]
 
 Y0_train = np.where(Y0_train == 0, -1, 1)
 Y1_train = np.where(Y1_train == 0, -1, 1)
