@@ -11,8 +11,11 @@ def run():
     else:
         value = input("Remove and generate a new k-mers and mismatch? \033[1m (y/n) \033[0m")
         if value == "y":
-            files = ["0_5_1", "0_8_1", "0_10_1", "0_12_2", "0_13_2", "0_15_3", "1_5_1", "1_8_1", "1_10_1", "1_12_2", "1_13_2", "1_15_3", "2_5_1", "2_8_1", "2_10_1", "2_12_2", "2_13_2", "2_15_3",]
-            for a in files:
-                os.remove(f"generated_kmer_neighbours/{a}.p")
+            try:
+                files = ["0_5_1", "0_8_1", "0_10_1", "0_12_2", "0_13_2", "0_15_3", "1_5_1", "1_8_1", "1_10_1", "1_12_2", "1_13_2", "1_15_3", "2_5_1", "2_8_1", "2_10_1", "2_12_2", "2_13_2", "2_15_3",]
+                for a in files:
+                    os.remove(f"generated_kmer_neighbours/{a}.p")
+            except:
+                pass
         sumMismatchBasedSVMKernel()
 run()

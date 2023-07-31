@@ -31,3 +31,8 @@ Dependencies required: **numpy**, **scipy**, **pandas**, **pickle**, **tqdm**, *
 
 To generate the prediction outputs, run 
 ```python main.py```.then press ```Enter```
+
+----
+While running the ```main.py``` file, notice that the RBF implementation is added just to show structure. But to see how we attain the Kaggle competition prediction accuracy, you can use the SVM implementation.
+
+``` Default == SVM```
