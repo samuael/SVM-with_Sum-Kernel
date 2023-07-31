@@ -11,7 +11,7 @@ Group Members:
 1. Jean Robin RAHERISAMBATRA jrraherisambatra@aimsammi.org
 2. Samuael Adnew Birhane     sadnew@aimsammi.org
 
-Dependencies required: **numpy**, **scipy**, **pandas**, **pickle**, **tqdm**, **cvxpy**, **cvxopt**
+Dependencies required: **numpy**, **scipy**, **pandas**, **pickle**, **tqdm**, **cvxpy**, **cvxopt**, **gensim**
 1. **numpy** for array related computations.
 
 2. **scipy** for Matrix computation.
@@ -24,5 +24,10 @@ Dependencies required: **numpy**, **scipy**, **pandas**, **pickle**, **tqdm**, *
 
 6. **cvxpy** and **cvxopt** for convex optimization problems.
 
+7. **gensim** for Word2Vec embedding creation.
+
 ----
-To generate the prediction outputs, run ```python svm_sum.py```.
+### How to run
+
+To generate the prediction outputs, run 
+```python main.py```.then press ```Enter```

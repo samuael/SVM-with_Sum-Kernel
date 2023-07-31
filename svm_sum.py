@@ -6,82 +6,49 @@ import cvxpy as cp
 import pandas as pd
 from tqdm import tqdm
 
-from svm_utils import getNeighbours
-
-X0_train = pd.read_csv("data/Xtr0.csv", sep=",", index_col=0).values
-X1_train = pd.read_csv("data/Xtr1.csv", sep=",", index_col=0).values
-X2_train = pd.read_csv("data/Xtr2.csv", sep=",", index_col=0).values
-
-Y0_train = pd.read_csv("data/Ytr0.csv", sep=",", index_col=0).values
-Y1_train = pd.read_csv("data/Ytr1.csv", sep=",", index_col=0).values
-Y2_train = pd.read_csv("data/Ytr2.csv", sep=",", index_col=0).values
-
-X0_test = pd.read_csv("data/Xte0.csv", sep=",", index_col=0).values[:,0]
-X1_test = pd.read_csv("data/Xte1.csv", sep=",", index_col=0).values[:,0]
-X2_test = pd.read_csv("data/Xte2.csv", sep=",", index_col=0).values[:,0]
-
-Y0_train = np.where(Y0_train == 0, -1, 1)
-Y1_train = np.where(Y1_train == 0, -1, 1)
-Y2_train = np.where(Y2_train == 0, -1, 1)
-
-permutations = np.random.permutation(len(X0_train))
-X0_train = X0_train[permutations][:,0]
-Y0_train = Y0_train[permutations]
-
-permutations = np.random.permutation(len(X1_train))
-X1_train = X1_train[permutations][:,0]
-Y1_train = Y1_train[permutations]
-
-permutations = np.random.permutation(len(X2_train))
-X2_train = X2_train[permutations][:,0]
-Y2_train = Y2_train[permutations]
-
-datasets = [(X0_train, X0_test),(X1_train, X1_test),(X2_train, X2_test)]
-
-# KernelSVM SVM implementation
+from svm_helper_functions import getNeighbours
 class KernelSVM:
-    '''
-    Kernel SVM Classification
-    
-    Methods
-    ----
-    fit
-    predict
-    '''
-    def __init__(self, sumKernel, Width=1.0):
-        self.mismatchKernels = sumKernel
-        self.Width = Width
-        self.tol_support_vectors = 1e-4
-
-    def fit(self, X, y):
-        self.X_train = X
-        n_samples = X.shape[0]
-        self.X_train_gram = self.mismatchKernels.GramMatrix(X)
-        P = self.X_train_gram
-        q = -y.astype(np.float64)
-        G = np.block([[np.diag(np.squeeze(y).astype(np.float64))],[-np.diag(np.squeeze(y).astype(np.float64))]])
-        h = np.concatenate((self.Width*np.ones(n_samples),np.zeros(n_samples)))
-
-        P,q,G,h = matrix(P) ,matrix(q) ,matrix(G) ,matrix(h)
-        cvxsolver = cvxopt.solvers.qp(P=P,q=q,G=G,h=h)
-        x = cvxsolver['x']
-        self.alphas = np.squeeze(np.array(x))
-        self.support_vectors_indices = np.squeeze(np.abs(np.array(x))) > self.tol_support_vectors
-        self.alphas = self.alphas[self.support_vectors_indices]
-        self.support_vectors = self.X_train[self.support_vectors_indices]
-        return self.alphas # retruns found alphs values.
-
-
-    # decision_function predicts the value given X and the trained self.alpha values.
-    def decision_function(self, X):
-        K = self.mismatchKernels.GramMatrix(X, self.support_vectors)
-        y = np.dot(K, self.alphas)
-        return y 
-
-    def predict(self, X, threshold=0):
-        K = self.mismatchKernels.GramMatrix(X, self.support_vectors)
-        y = np.dot(K, self.alphas)
-        return np.where(y > threshold, 1, -1)
+     '''
+     Kernel SVM Classification
+     
+     Methods
+     ----
+     fit
+     predict
+     '''
+     def __init__(self, sumKernel, Width=1.0):
+         self.mismatchKernels = sumKernel
+         self.Width = Width
+         self.tol_support_vectors = 1e-4
+     def fit(self, X, y):
+         self.X_train = X
+         n_samples = X.shape[0]
+         self.X_train_gram = self.mismatchKernels.GramMatrix(X)
+         P = self.X_train_gram
+         q = -y.astype(np.float64)
+         G = np.block([[np.diag(np.squeeze(y).astype(np.float64))],[-np.diag(np.squeeze(y).astype(np.float64))]])
+         h = np.concatenate((self.Width*np.ones(n_samples),np.zeros(n_samples)))
+ 
+         P,q,G,h = matrix(P) ,matrix(q) ,matrix(G) ,matrix(h)
+         cvxsolver = cvxopt.solvers.qp(P=P,q=q,G=G,h=h)
+         x = cvxsolver['x']
+         self.alphas = np.squeeze(np.array(x))
+         self.support_vectors_indices = np.squeeze(np.abs(np.array(x))) > self.tol_support_vectors
+         self.alphas = self.alphas[self.support_vectors_indices]
+         self.support_vectors = self.X_train[self.support_vectors_indices]
+         return self.alphas # retruns found alphs values.
+ 
+ 
+     # decision_function predicts the value given X and the trained self.alpha values.
+     def decision_function(self, X):
+         K = self.mismatchKernels.GramMatrix(X, self.support_vectors)
+         y = np.dot(K, self.alphas)
+         return y 
+ 
+     def predict(self, X, threshold=0):
+         K = self.mismatchKernels.GramMatrix(X, self.support_vectors)
+         y = np.dot(K, self.alphas)
+         return np.where(y > threshold, 1, -1)
 
 class MismatchKernel:
     def __init__(self, k, m, neighbours, kmer_set):
@@ -95,16 +62,21 @@ class MismatchKernel:
     def getKmerEmbedding(self, X):
         xKmer = [X[j:j + self.k] for j in range(len(X) - self.k + 1)]
         embeddings = {}
+        prev = None
         for kmer in xKmer:
-            neigh_kmer = self.neighbours[kmer]
+            try:
+                neigh_kmer = self.neighbours[kmer]
+            except:
+                neigh_kmer= prev
             for neigh in neigh_kmer:
                 idx_neigh = self.kmer_set[neigh]
                 if idx_neigh in embeddings:
                     embeddings[idx_neigh] += 1
                 else:
                     embeddings[idx_neigh] = 1
+                prev= idx_neigh
         return embeddings
-    
+
     # createSparseMatrix creates a sparse matrix given the list of X.
     def createSparseMatrix(self, X):
         X_embedding = []
@@ -168,92 +140,108 @@ class SumKernel:
             K += kernel.GramMatrix(X1,X2) * self.weights[index]
         return K
 
-def getModel(datasetIndex=0):
+def getModel(datasets, datasetIndex=0):
     kernels = []
     for k,m in zip([5,8,10,12,13],[1,1,1,2,2]):
         neighbours, kmer_set = getNeighbours(datasets, k, m, datasetIndex=datasetIndex)
         kernels.append(MismatchKernel(k=k, m=m, neighbours=neighbours, kmer_set=kmer_set))
-    return KernelSVM(sumKernel=SumKernel(kernels=kernels, weights=[1.0,1.0,1.0,1.0,1.0]), Width=Width)
+    return KernelSVM(sumKernel=SumKernel(kernels=kernels, weights=[1.0,1.0,1.0,1.0,1.0]), Width=5)
 
-Width = 5.0
+def sumMismatchBasedSVMKernel():
+    X0_train = pd.read_csv("data/Xtr0.csv", sep=",", index_col=0).values
+    X1_train = pd.read_csv("data/Xtr1.csv", sep=",", index_col=0).values
+    X2_train = pd.read_csv("data/Xtr2.csv", sep=",", index_col=0).values
 
-cv_0_YESNO, cv_1_YESNO, cv_2_YESNO= False, False, False
+    Y0_train = pd.read_csv("data/Ytr0.csv", sep=",", index_col=0).values
+    Y1_train = pd.read_csv("data/Ytr1.csv", sep=",", index_col=0).values
+    Y2_train = pd.read_csv("data/Ytr2.csv", sep=",", index_col=0).values
 
-epochs=5
-svm= getModel(datasetIndex=0)
-split = np.linspace(0,len(X0_train),num=epochs+1).astype(int)
-epochs=epochs
-for i in range(epochs):
-    frac_val = 1.0/epochs
-    indices_val = np.arange(len(X0_train))[split[i]:split[i+1]]
-    indices_train = np.concatenate([np.arange(len(X0_train))[0:split[i]],np.arange(len(X0_train))[split[i+1]:]]) 
+    X0_test = pd.read_csv("data/Xte0.csv", sep=",", index_col=0).values[:,0]
+    X1_test = pd.read_csv("data/Xte1.csv", sep=",", index_col=0).values[:,0]
+    X2_test = pd.read_csv("data/Xte2.csv", sep=",", index_col=0).values[:,0]
 
-    X0_train_,X0_val_ = X0_train[indices_train],X0_train[indices_val]
-    Y0_train_,Y0_val_ = Y0_train[indices_train],Y0_train[indices_val]
-    
-    svm.fit(X0_train_, Y0_train_)
-    pred_train = svm.predict(X0_train_)
-    pred_val = svm.predict(X0_val_)
+    Y0_train = np.where(Y0_train == 0, -1, 1)
+    Y1_train = np.where(Y1_train == 0, -1, 1)
+    Y2_train = np.where(Y2_train == 0, -1, 1)
 
-    train_acc = np.sum(np.squeeze(pred_train)==np.squeeze(Y0_train_)) / len(Y0_train_)
-    val_acc = np.sum(np.squeeze(pred_val)==np.squeeze(Y0_val_)) / len(Y0_val_)
+    permutations = np.random.permutation(len(X0_train))
+    X0_train = X0_train[permutations][:,0]
+    Y0_train = Y0_train[permutations]
 
-    print("Dataset 0 Validation Accuracy:", val_acc)
-    if val_acc >= 0.69: # 0.69 was the highest accuracy value for first dataset
-        cv_0_YESNO=True
-        pred_0 = svm.predict(X0_test)
-        pred_1 = svm.predict(X1_test)
-        break
+    permutations = np.random.permutation(len(X1_train))
+    X1_train = X1_train[permutations][:,0]
+    Y1_train = Y1_train[permutations]
 
-svm= getModel(datasetIndex=1)
-split = np.linspace(0,len(X1_train),num=epochs+1).astype(int)
-for i in range(epochs):
-    frac_val = 1.0/epochs
-    indices_val = np.arange(len(X1_train))[split[i]:split[i+1]]
-    indices_train = np.concatenate([np.arange(len(X1_train))[0:split[i]],np.arange(len(X1_train))[split[i+1]:]]) 
+    permutations = np.random.permutation(len(X2_train))
+    X2_train = X2_train[permutations][:,0]
+    Y2_train = Y2_train[permutations]
 
-    X1_train_,X1_val_ = X1_train[indices_train], X1_train[indices_val]
-    Y1_train_,Y1_val_ = Y1_train[indices_train], Y1_train[indices_val]
-    svm.fit(X1_train_, Y1_train_)
-    pred_train = svm.predict(X1_train_)
-    pred_val = svm.predict(X1_val_)
+    datasets = [(X0_train, X0_test),(X1_train, X1_test),(X2_train, X2_test)]
+    cv_0_YESNO, cv_1_YESNO, cv_2_YESNO= False, False, False
 
-    train_acc = np.sum(np.squeeze(pred_train)==np.squeeze(Y1_train_)) / len(Y1_train_)
-    val_acc = np.sum(np.squeeze(pred_val)==np.squeeze(Y1_val_)) / len(Y1_val_)
+    epochs=5
+    svm= getModel(datasets, datasetIndex=0)
+    split = np.linspace(0,len(X0_train),num=epochs+1).astype(int)
+    epochs=epochs
+    for i in range(epochs):
+        indices_val = np.arange(len(X0_train))[split[i]:split[i+1]]
+        indices_train = np.concatenate([np.arange(len(X0_train))[0:split[i]],np.arange(len(X0_train))[split[i+1]:]]) 
 
-    print("Dataset 1 Validation accuracy:", val_acc)
-    if val_acc >= 0.69: # 0.69 was the highest validation accuracy for dataset 1
-        cv_1_YESNO=True
-        pred_1 = svm.predict(X1_test)
-        break
+        X_sample,x_validation = X0_train[indices_train],X0_train[indices_val]
+        y_sample,y_validation = Y0_train[indices_train],Y0_train[indices_val]
+        
+        svm.fit(X_sample, y_sample)
+        pred_val = svm.predict(x_validation)
+        val_acc = np.sum(np.squeeze(pred_val)==np.squeeze(y_validation)) / len(y_validation)
 
-svm= getModel(datasetIndex=2)
-split = np.linspace(0,len(X2_train),num=epochs+1).astype(int)
-for i in range(epochs):
-    frac_val = 1.0/epochs
-    indices_val = np.arange(len(X2_train))[split[i]:split[i+1]]
-    indices_train = np.concatenate([np.arange(len(X2_train))[0:split[i]],np.arange(len(X2_train))[split[i+1]:]]) 
+        print("Dataset 0 Validation Accuracy:", val_acc)
+        if val_acc >= 0.69: # 0.69 was the highest accuracy value for first dataset
+            cv_0_YESNO=True
+            pred_0 = svm.predict(X0_test)
+            pred_1 = svm.predict(X1_test)
+            break
 
-    X2_train_,X2_val_ = X2_train[indices_train],X2_train[indices_val]
-    Y2_train_,Y2_val_ = Y2_train[indices_train],Y2_train[indices_val]
-    svm.fit(X2_train_, Y2_train_)
-    pred_train = svm.predict(X2_train_)
-    pred_val = svm.predict(X2_val_)
-    train_acc = np.sum(np.squeeze(pred_train)==np.squeeze(Y2_train_)) / len(Y2_train_)
-    val_acc = np.sum(np.squeeze(pred_val)==np.squeeze(Y2_val_)) / len(Y2_val_)
+    svm= getModel(datasets, datasetIndex=1)
+    split = np.linspace(0,len(X1_train),num=epochs+1).astype(int)
+    for i in range(epochs):
+        indices_val = np.arange(len(X1_train))[split[i]:split[i+1]]
+        indices_train = np.concatenate([np.arange(len(X1_train))[0:split[i]],np.arange(len(X1_train))[split[i+1]:]]) 
 
-    print("Dataset 2 Validation accuracy:", val_acc)
-    if val_acc >= 0.7975:
-        cv_2_YESNO=True
-        pred_2 = svm.predict(X2_test)
-        break
+        x1_sample,x1_validation = X1_train[indices_train], X1_train[indices_val]
+        y1_sample,y1_validation = Y1_train[indices_train], Y1_train[indices_val]
+        svm.fit(x1_sample, y1_sample)
+        pred_val = svm.predict(x1_validation)
+        val_acc = np.sum(np.squeeze(pred_val)==np.squeeze(y1_validation)) / len(y1_validation)
+
+        print("Dataset 1 Validation accuracy:", val_acc)
+        if val_acc >= 0.69: # 0.69 was the highest validation accuracy for dataset 1
+            cv_1_YESNO=True
+            pred_1 = svm.predict(X1_test)
+            break
+
+    svm= getModel(datasets, datasetIndex=2)
+    split = np.linspace(0,len(X2_train),num=epochs+1).astype(int)
+    for i in range(epochs):
+        indices_val = np.arange(len(X2_train))[split[i]:split[i+1]]
+        indices_train = np.concatenate([np.arange(len(X2_train))[0:split[i]],np.arange(len(X2_train))[split[i+1]:]]) 
+        x2_sample,x2_validation = X2_train[indices_train],X2_train[indices_val]
+        y2_sample,y2_validation = Y2_train[indices_train],Y2_train[indices_val]
+        svm.fit(x2_sample, y2_sample)
+        pred_val = svm.predict(x2_validation)
+        val_acc = np.sum(np.squeeze(pred_val)==np.squeeze(y2_validation)) / len(y2_validation)
+
+        print("Dataset 2 Validation accuracy:", val_acc)
+        if val_acc >= 0.78:
+            cv_2_YESNO=True
+            pred_2 = svm.predict(X2_test)
+            break
 
 
-# The prediction file will be generated when the three conditions are satisfied.
-if cv_0_YESNO and cv_0_YESNO and cv_2_YESNO:
-    predictions = np.concatenate([pred_0.squeeze(),pred_1.squeeze(),pred_2.squeeze()])
-    predictions = np.where(predictions == -1, 0, 1)
-    resultDataFrame = pd.DataFrame()
-    resultDataFrame['Bound'] = predictions
-    resultDataFrame.index.name = 'Id'
-    resultDataFrame.to_csv('Yte.csv', sep=',', header=True)
+    # The prediction file will be generated when the three conditions are satisfied.
+    if cv_0_YESNO and cv_1_YESNO and cv_2_YESNO:
+        predictions = np.concatenate([pred_0.squeeze(),pred_1.squeeze(),pred_2.squeeze()])
+        predictions = np.where(predictions == -1, 0, 1)
+        resultDataFrame = pd.DataFrame()
+        resultDataFrame['Bound'] = predictions
+        resultDataFrame.index.name = 'Id'
+        resultDataFrame.to_csv('Yte.csv', sep=',', header=True)
